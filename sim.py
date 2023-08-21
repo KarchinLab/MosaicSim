@@ -15,7 +15,9 @@ from Bio import SeqIO
 from datasketch import *
 import math
 import re
-from parameters import *
+# from parameters import *
+import argparse
+import yaml
 
 
 
@@ -558,9 +560,9 @@ def generateMatrix(the_matrix, list_of_weights, time_matrix):
     return the_matrix, avg_rate
 
 
-def getTree(num_clones, pop, working_dir):
+def getTree(num_clones, pop, working_dir, seed):
     tree_sequence = msprime.simulate(
-        sample_size=num_clones, Ne=pop, recombination_rate=0)
+        sample_size=num_clones, Ne=pop, recombination_rate=0, random_seed=seed)
     tree_sequence.dump(working_dir + '/tree_sequence.tree')
     tree = tree_sequence.first()
     return tree
@@ -1149,240 +1151,352 @@ def lbrunSim(num_tumors, num_clones_list, coverage, base_dir, floc, root, alpha,
         print('first batch write done')
 
 
-print('start')
-ts = time.time()
-randomid = sys.argv[1]
-#CHANGE THIS TO  WHERE YOU WANT TO STORE THE DATA!
-base_working_dir = storage_dir+randomid+'/' 
-reference_working_dir = base_working_dir + 'reference/'
+def main(base_working_dir, tab = ["ACTG", "TGAC"], list_of_bases = ['A', 'C', 'T', 'G'], list_of_pairs = ['CA', 'CG', 'CT', 'TA', 'TC', 'TG'], 
+         sig_file = './data/signatures.txt', num_signatures = 78, use_signatures = False, signature_alpha = 10, full_genome = './data/hg38.fa',
+         EXON_FILE = './data/exonsegments.txt', num_samples_list = [7], num_tumors_list = [2], read_len_list = [75, 150, 500, 2000],
+         frag_len_list = [150,200, 1000, 3000], alpha_list = [10], paired_list = [True], WES_list = [False, True], use_leaf_only = False,
+         error_rate_list = [0.0, 0.0, 0.0, 0.00001,0.00001,0.0001, 0.001], clone_list = [5], ultralow_rates_list = [1e-15], low_rates_list = [1e-15, 1e-13, 1e-10],
+         medium_rates_list = [5e-9, 4e-10, 9e-10, 3e-9], high_rates_list = [3e-8, 9e-9, 7e-9], ultrahigh_rates_list = [5e-8,5e-7,6e-7,5e-8,1e-7],
+         coverage_list = [2, 5, 10, 15,15, 25,25, 30,30], pop_list = [8e8], num_single_cell_list = [0], liquid_biopsy_list = [False],
+         batch_size = 1, subblock_size = 1, LSH_hash = False, LSHStringNum = 10000000, kmer_len=50, num_perm=64, thresh=0.33, ctdna_frac_list = [0.96],
+         ref_coverage = 30, ref_clones = 5, ref_paired = True, ref_WES = False, ref_erate = 0.0, seed=123, list_of_rates=[]):
+   
+    # update parameters from yaml file
+    random.seed(seed)
 
-reversemap = {'chr1':0, 'chr10':2, 'chr11':4, 'chr12':6, 'chr13':8, 'chr14':10, 'chr15':12, 'chr16':14, 'chr17':16, 'chr18':18, 'chr19':20, 'chr2':22, 'chr20':24, 'chr21':26, 'chr22':28, 'chr3':30, 'chr4':32, 'chr5':34, 'chr6':36, 'chr7':38, 'chr8':40, 'chr9':42, 'chrX':44, 'chrY':45} 
-numchrommap = {0: 'chr1', 1: 'chr1', 2: 'chr10', 3: 'chr10', 4: 'chr11', 5: 'chr11', 6: 'chr12', 7: 'chr12', 8: 'chr13', 9: 'chr13', 10: 'chr14', 11: 'chr14', 12: 'chr15', 13: 'chr15', 14: 'chr16', 15: 'chr16', 16: 'chr17', 17: 'chr17', 18: 'chr18', 19: 'chr18', 20: 'chr19', 21: 'chr19', 22: 'chr2', 23: 'chr2', 24: 'chr20', 25: 'chr20', 26: 'chr21', 27: 'chr21', 28: 'chr22', 29: 'chr22', 30: 'chr3', 31: 'chr3', 32: 'chr4', 33: 'chr4', 34: 'chr5', 35: 'chr5', 36: 'chr6', 37: 'chr6', 38: 'chr7', 39: 'chr7', 40: 'chr8', 41: 'chr8', 42: 'chr9', 43: 'chr9', 44: 'chrX', 45: 'chrY'}
-chrom_dict = ['chr1', 'chr10', 'chr11', 'chr12', 'chr13', 'chr14', 'chr15', 'chr16', 'chr17', 'chr18', 'chr19',
-              'chr2', 'chr20', 'chr21', 'chr22', 'chr3', 'chr4', 'chr5', 'chr6', 'chr7', 'chr8', 'chr9', 'chrX', 'chrY']
-reduced_chrom_dict = ['chr1', 'chr10', 'chr11', 'chr12', 'chr13', 'chr14', 'chr15', 'chr16', 'chr17',
-                      'chr18', 'chr19', 'chr2', 'chr20', 'chr21', 'chr22', 'chr3', 'chr4', 'chr5', 'chr6', 'chr7', 'chr8', 'chr9']
-sex_chroms = ['chrX', 'chrY']
-chroms = []
-fasta_sequences = SeqIO.parse(open(full_genome), 'fasta')
-for fasta in fasta_sequences:
-    name = fasta.id
-    if (name in reduced_chrom_dict):
-        print(fasta.name)
-        chroms.append(str(fasta.seq).upper())
-        chroms.append(str(fasta.seq).upper())
-    elif(name in sex_chroms):
-        print(fasta.name)
-        chroms.append(str(fasta.seq).upper())
-    else:
-        continue
-print('chroms loaded')
-getmemory()
+    if len(list_of_rates) == 0:
+        list_of_rates = [high_rates_list, ultralow_rates_list, high_rates_list, ultralow_rates_list, high_rates_list, ultralow_rates_list, ultralow_rates_list, ultralow_rates_list, ultralow_rates_list, ultralow_rates_list, ultralow_rates_list, ultralow_rates_list]
 
-total_num_intervals = 0
-exonDict = {}
-strings_to_idx = []
-for i in chrom_dict:
-    exonDict[i] = []
-with open(EXON_FILE, 'r') as f:
-    for line in f:
-        chrom, start, end = line.split()
-        if chrom in chrom_dict:
-            start_i = int(start)
-            end_i = int(end)
-            interval = [start_i, end_i]
-            total_num_intervals += 1
-            exonDict[chrom].append(interval)
-            strings_to_idx.append(chroms[reversemap[chrom]][start_i:end_i])
-getmemory()
-print(len(strings_to_idx))
+    tab = str.maketrans(tab[0], tab[1])
 
-makedir(base_working_dir)
-clear_dir(base_working_dir)
-print(base_working_dir)
-if(LSH_hash): 
-    lshindex =[]
-    all_hashes = [MinHash(num_perm=num_perm) for i in range(len(strings_to_idx))]
-    for i in range(len(strings_to_idx)): 
-        kmer_set_i = getKmers(strings_to_idx[i], kmer_len)
-        key_i = str(i)
-        for z in kmer_set_i: 
-            all_hashes[i].update(z.encode('utf8'))
-        lshindex.append((key_i, all_hashes[i]))
-    lsh = MinHashLSH(threshold=thresh, num_perm=num_perm)
-    for i in lshindex: 
-        lsh.insert(i[0],i[1])
-    print('hash index made')
+    sig_df = pd.read_csv(sig_file, sep = '\t', header = None)
+    sig_df = sig_df.iloc[1:]
+    sig_df = sig_df.iloc[:,1:]
+    signatures_matrix = sig_df.to_numpy()
+    signature_distributions = [float(1/num_signatures)]*num_signatures
 
-# do reference first
-print('making ref reads')
-makedir(reference_working_dir)
-clear_dir(reference_working_dir)
-wgz(reference_working_dir + str(ref_root_node) + '.gz', chroms)
-with open(reference_working_dir + 'parameter_list.txt', 'w') as f:
-    f.write('coverage: ' + str(ref_coverage)+'\n')
-    f.write('read len: ' + str(ref_read_len)+'\n')
-    f.write('frag len: ' + str(ref_frag_len)+'\n')
-    f.write('paired: ' + str(ref_paired)+'\n')
-    f.write('WES: ' + str(ref_WES)+'\n')
-    f.write('error rate: ' + str(ref_erate) + '\n')
-
-del chroms
-getmemory()
-if(ref_paired):
-    if(ref_WES):
-        exonrunPairedSim(ref_int_nodes, ref_coverage, ref_read_len, ref_frag_len, reference_working_dir,
-                         reference_working_dir, batch_size, ref_root_node, exonDict, numchrommap, subblock_size, ref_alpha, ref_erate, flag=1)
-    else:
-        runPairedSim(ref_int_nodes, ref_coverage, ref_read_len, ref_frag_len, reference_working_dir,
-                     reference_working_dir, batch_size, ref_root_node, ref_alpha, ref_erate, flag=1)
-else:
-    if(ref_WES):
-        exonrunSim(ref_int_nodes, ref_coverage, ref_read_len, reference_working_dir, reference_working_dir,
-                   batch_size, ref_root_node, exonDict, numchrommap, subblock_size, ref_alpha, ref_erate, flag=1)
-    else:
-        runSim(ref_int_nodes, ref_coverage, ref_read_len, reference_working_dir,
-               reference_working_dir, batch_size, ref_root_node, ref_alpha, ref_erate, flag=1)
-getmemory()
-
-running_clone_list = []
-num_tumors = random.choice(num_tumors_list)
-num_samples = random.choice(num_samples_list)
-for tum in range(num_tumors):
-    getmemory()
-    alpha = random.choice(alpha_list)
-    num_clones = random.choice(clone_list)
-    running_clone_list.append(num_clones)
-    tot_nodes = 2*num_clones - 1
-    root_node = tot_nodes - 1
-    int_nodes = root_node - 1
-    if(use_leaf_only): 
-        use_nodes = num_clones
-    else: 
-        use_nodes = int_nodes
-    pop = random.choice(pop_list)
-    tumor_number_dir = f'tumor_{tum}/'
-    working_dir = base_working_dir + tumor_number_dir
-    makedir(working_dir)
-    clear_dir(working_dir)
-    baseline_chroms = rgz(reference_working_dir + str(ref_root_node) + '.gz')
-    wgz(working_dir + str(root_node) + '.gz', baseline_chroms)
-    del baseline_chroms
-    print('written reg')
-    tree = getTree(num_clones, pop, working_dir)
-    list_of_paths = getPaths(tree, num_clones)
-    time_matrix, depth = getTimeMatrix(tree, num_clones)
-    mutationedge_list, avg_rate_list = generateOrder(
-        tree, time_matrix, list_of_rates)
-    infos, muts = applyMutations(
-        tot_nodes, working_dir, list_of_paths, use_signatures, mutationedge_list)
-    with open(working_dir + 'mutation_list.txt', 'w') as f:
-        f.write(str(muts))
-    with open(working_dir + 'information_list.txt', 'w') as f:
-        f.write(str(infos))
-    approx_len = len(muts[0])
-    print('approx mutations', approx_len)
-    print(muts)
-    print('mutated genomes stored')
-    getmemory()
-    if(LSH_hash):
-        tumorExonDict = exonDict.copy()
-        strings_per_clone = LSHStringNum
-        set_of_start_indices = set()
-        for i in range(strings_per_clone): 
-            chrom = random.randint(0,45)
-            the_string, string_pos = get_random_str(chroms[chrom], 150)
-            kmer_of_string = getKmers(the_string, kmer_len)
-            m = MinHash(num_perm=num_perm)
-            for shingle in kmer_of_string: 
-                m.update(shingle.encode('utf8'))
-            n = len(lsh.query(m))
-            if(n > 0): 
-                tumorExonDict[chrom].append([string_pos, string_pos+150])
+    read_length_index = random.randint(0, len(read_len_list)-1)
+    ref_read_len = read_len_list[read_length_index]
+    ref_frag_len = frag_len_list[read_length_index]
+    ref_tot_nodes = 2*ref_clones-1
+    ref_root_node = ref_tot_nodes-1
+    ref_int_nodes = ref_root_node-1
+    ref_alpha = random.choice(alpha_list)
 
 
-    for sample in range(num_samples):
-        print('starting sample')
-        if(LSH_hash): 
-            exonDictR = tumorExonDict
-        else: 
-            exonDictR = exonDict
-        real_working_dir = working_dir + f'samplenum_{sample}/'
-        makedir(real_working_dir)
-        clear_dir(real_working_dir)
-        coverage = random.choice(coverage_list)
-        num_single_cells = random.choice(num_single_cell_list)
-        read_length_index = random.randint(0, len(read_len_list)-1)
-        read_len = read_len_list[read_length_index]
-        frag_len = frag_len_list[read_length_index]
-        paired = random.choice(paired_list)
-        WES = random.choice(WES_list)
-        error_rate = random.choice(error_rate_list)
-        with open(real_working_dir + 'parameter_list.txt', 'w') as f:
-            f.write('num leaves: ' + str(num_clones)+'\n')
-            f.write('dir_conc: ' + str(alpha)+'\n')
-            f.write('cell pop: ' + str(pop)+'\n')
-            f.write('coverage: ' + str(coverage)+'\n')
-            f.write('num single cells: ' + str(num_single_cells)+'\n')
-            f.write('read len: ' + str(read_len)+'\n')
-            f.write('frag len: ' + str(frag_len)+'\n')
-            f.write('paired: ' + str(paired)+'\n')
-            f.write('WES: ' + str(WES)+'\n')
-            f.write('rates of variants: ' + str(avg_rate_list)+'\n')
-            f.write('full poisson time: ' + str(depth) + '\n')
-            f.write('error rate: ' + str(error_rate) + '\n')
-        getmemory()
-        if(paired):
-            if(WES):
-                exonrunPairedSim(use_nodes, coverage, read_len, frag_len, working_dir, real_working_dir,
-                                 batch_size, root_node, exonDictR, numchrommap, subblock_size, alpha, error_rate, flag=0)
-                for i in range(num_single_cells):
-                    single_cell_dir = working_dir+f'samplenum_{sample}_singlecell_{i}/'
-                    makedir(single_cell_dir)
-                    clear_dir(single_cell_dir)
-                    exonrunPairedSim(use_nodes, coverage, read_len, frag_len, working_dir, single_cell_dir,
-                                     batch_size, root_node, exonDictR, numchrommap, subblock_size, alpha, error_rate, flag=2)
+    ## TO MODIFY
+    # storage_dir = '/home/assrivat/simulation_results/'
 
-            else:
-                runPairedSim(use_nodes, coverage, read_len, frag_len, working_dir,
-                             real_working_dir, batch_size, root_node, alpha, error_rate, flag=0)
-                for i in range(num_single_cells):
-                    single_cell_dir = working_dir+f'samplenum_{sample}_singlecell_{i}/'
-                    makedir(single_cell_dir)
-                    clear_dir(single_cell_dir) 
-                    runPairedSim(use_nodes, coverage, read_len, frag_len, working_dir,
-                                 single_cell_dir, batch_size, root_node, alpha, error_rate, flag=2)
+    print('start')
+    ts = time.time()
+    # randomid = sys.argv[1]
+    #CHANGE THIS TO  WHERE YOU WANT TO STORE THE DATA!
+    base_working_dir = base_working_dir.rstrip("/") + '/'
+    try:
+        os.mkdir(base_working_dir)
+    except:
+        print("output directory already exists")
+
+    reference_working_dir = base_working_dir + 'reference/'
+
+    reversemap = {'chr1':0, 'chr10':2, 'chr11':4, 'chr12':6, 'chr13':8, 'chr14':10, 'chr15':12, 'chr16':14, 'chr17':16, 'chr18':18, 'chr19':20, 'chr2':22, 'chr20':24, 'chr21':26, 'chr22':28, 'chr3':30, 'chr4':32, 'chr5':34, 'chr6':36, 'chr7':38, 'chr8':40, 'chr9':42, 'chrX':44, 'chrY':45} 
+    numchrommap = {0: 'chr1', 1: 'chr1', 2: 'chr10', 3: 'chr10', 4: 'chr11', 5: 'chr11', 6: 'chr12', 7: 'chr12', 8: 'chr13', 9: 'chr13', 10: 'chr14', 11: 'chr14', 12: 'chr15', 13: 'chr15', 14: 'chr16', 15: 'chr16', 16: 'chr17', 17: 'chr17', 18: 'chr18', 19: 'chr18', 20: 'chr19', 21: 'chr19', 22: 'chr2', 23: 'chr2', 24: 'chr20', 25: 'chr20', 26: 'chr21', 27: 'chr21', 28: 'chr22', 29: 'chr22', 30: 'chr3', 31: 'chr3', 32: 'chr4', 33: 'chr4', 34: 'chr5', 35: 'chr5', 36: 'chr6', 37: 'chr6', 38: 'chr7', 39: 'chr7', 40: 'chr8', 41: 'chr8', 42: 'chr9', 43: 'chr9', 44: 'chrX', 45: 'chrY'}
+    chrom_dict = ['chr1', 'chr10', 'chr11', 'chr12', 'chr13', 'chr14', 'chr15', 'chr16', 'chr17', 'chr18', 'chr19',
+                'chr2', 'chr20', 'chr21', 'chr22', 'chr3', 'chr4', 'chr5', 'chr6', 'chr7', 'chr8', 'chr9', 'chrX', 'chrY']
+    reduced_chrom_dict = ['chr1', 'chr10', 'chr11', 'chr12', 'chr13', 'chr14', 'chr15', 'chr16', 'chr17',
+                        'chr18', 'chr19', 'chr2', 'chr20', 'chr21', 'chr22', 'chr3', 'chr4', 'chr5', 'chr6', 'chr7', 'chr8', 'chr9']
+    sex_chroms = ['chrX', 'chrY']
+    chroms = []
+    fasta_sequences = SeqIO.parse(open(full_genome), 'fasta')
+    for fasta in fasta_sequences:
+        name = fasta.id
+        if (name in reduced_chrom_dict):
+            print(fasta.name)
+            chroms.append(str(fasta.seq).upper())
+            chroms.append(str(fasta.seq).upper())
+        elif(name in sex_chroms):
+            print(fasta.name)
+            chroms.append(str(fasta.seq).upper())
         else:
-            if(WES):
-                exonrunSim(use_nodes, coverage, read_len, working_dir, real_working_dir,
-                           batch_size, root_node, exonDictR, numchrommap, subblock_size, alpha, error_rate, flag=0)
-                for i in range(num_single_cells):
-                    single_cell_dir = working_dir+f'samplenum_{sample}_singlecell_{i}/'
-                    makedir(single_cell_dir)
-                    clear_dir(single_cell_dir) 
-                    exonrunSim(use_nodes, coverage, read_len, working_dir, single_cell_dir,
-                               batch_size, root_node, exonDictR, numchrommap, subblock_size, alpha, error_rate, flag=2)
+            continue
+    print('chroms loaded')
+    getmemory()
 
+    total_num_intervals = 0
+    exonDict = {}
+    strings_to_idx = []
+    for i in chrom_dict:
+        exonDict[i] = []
+    with open(EXON_FILE, 'r') as f:
+        for line in f:
+            chrom, start, end = line.split()
+            if chrom in chrom_dict:
+                start_i = int(start)
+                end_i = int(end)
+                interval = [start_i, end_i]
+                total_num_intervals += 1
+                exonDict[chrom].append(interval)
+                strings_to_idx.append(chroms[reversemap[chrom]][start_i:end_i])
+    getmemory()
+    print(len(strings_to_idx))
+
+    makedir(base_working_dir)
+    clear_dir(base_working_dir)
+    print(base_working_dir)
+    if(LSH_hash): 
+        lshindex =[]
+        all_hashes = [MinHash(num_perm=num_perm) for i in range(len(strings_to_idx))]
+        for i in range(len(strings_to_idx)): 
+            kmer_set_i = getKmers(strings_to_idx[i], kmer_len)
+            key_i = str(i)
+            for z in kmer_set_i: 
+                all_hashes[i].update(z.encode('utf8'))
+            lshindex.append((key_i, all_hashes[i]))
+        lsh = MinHashLSH(threshold=thresh, num_perm=num_perm)
+        for i in lshindex: 
+            lsh.insert(i[0],i[1])
+        print('hash index made')
+
+    # do reference first
+    print('making ref reads')
+    makedir(reference_working_dir)
+    clear_dir(reference_working_dir)
+    wgz(reference_working_dir + str(ref_root_node) + '.gz', chroms)
+    with open(reference_working_dir + 'parameter_list.txt', 'w') as f:
+        f.write('coverage: ' + str(ref_coverage)+'\n')
+        f.write('read len: ' + str(ref_read_len)+'\n')
+        f.write('frag len: ' + str(ref_frag_len)+'\n')
+        f.write('paired: ' + str(ref_paired)+'\n')
+        f.write('WES: ' + str(ref_WES)+'\n')
+        f.write('error rate: ' + str(ref_erate) + '\n')
+
+    del chroms
+    getmemory()
+    if(ref_paired):
+        if(ref_WES):
+            exonrunPairedSim(ref_int_nodes, ref_coverage, ref_read_len, ref_frag_len, reference_working_dir,
+                            reference_working_dir, batch_size, ref_root_node, exonDict, numchrommap, subblock_size, ref_alpha, ref_erate, flag=1)
+        else:
+            runPairedSim(ref_int_nodes, ref_coverage, ref_read_len, ref_frag_len, reference_working_dir,
+                        reference_working_dir, batch_size, ref_root_node, ref_alpha, ref_erate, flag=1)
+    else:
+        if(ref_WES):
+            exonrunSim(ref_int_nodes, ref_coverage, ref_read_len, reference_working_dir, reference_working_dir,
+                    batch_size, ref_root_node, exonDict, numchrommap, subblock_size, ref_alpha, ref_erate, flag=1)
+        else:
+            runSim(ref_int_nodes, ref_coverage, ref_read_len, reference_working_dir,
+                reference_working_dir, batch_size, ref_root_node, ref_alpha, ref_erate, flag=1)
+    getmemory()
+
+    running_clone_list = []
+    num_tumors = random.choice(num_tumors_list)
+    num_samples = random.choice(num_samples_list)
+    for tum in range(num_tumors):
+        getmemory()
+        alpha = random.choice(alpha_list)
+        num_clones = random.choice(clone_list)
+        running_clone_list.append(num_clones)
+        tot_nodes = 2*num_clones - 1
+        root_node = tot_nodes - 1
+        int_nodes = root_node - 1
+        if(use_leaf_only): 
+            use_nodes = num_clones
+        else: 
+            use_nodes = int_nodes
+        pop = random.choice(pop_list)
+        tumor_number_dir = f'tumor_{tum}/'
+        working_dir = base_working_dir + tumor_number_dir
+        makedir(working_dir)
+        clear_dir(working_dir)
+        baseline_chroms = rgz(reference_working_dir + str(ref_root_node) + '.gz')
+        wgz(working_dir + str(root_node) + '.gz', baseline_chroms)
+        del baseline_chroms
+        print('written reg')
+        tree = getTree(num_clones, pop, working_dir, seed)
+        list_of_paths = getPaths(tree, num_clones)
+        time_matrix, depth = getTimeMatrix(tree, num_clones)
+        mutationedge_list, avg_rate_list = generateOrder(
+            tree, time_matrix, list_of_rates)
+        infos, muts = applyMutations(
+            tot_nodes, working_dir, list_of_paths, use_signatures, mutationedge_list)
+        with open(working_dir + 'mutation_list.txt', 'w') as f:
+            f.write(str(muts))
+        with open(working_dir + 'information_list.txt', 'w') as f:
+            f.write(str(infos))
+        approx_len = len(muts[0])
+        print('approx mutations', approx_len)
+        print(muts)
+        print('mutated genomes stored')
+        getmemory()
+        if(LSH_hash):
+            tumorExonDict = exonDict.copy()
+            strings_per_clone = LSHStringNum
+            set_of_start_indices = set()
+            for i in range(strings_per_clone): 
+                chrom = random.randint(0,45)
+                the_string, string_pos = get_random_str(chroms[chrom], 150)
+                kmer_of_string = getKmers(the_string, kmer_len)
+                m = MinHash(num_perm=num_perm)
+                for shingle in kmer_of_string: 
+                    m.update(shingle.encode('utf8'))
+                n = len(lsh.query(m))
+                if(n > 0): 
+                    tumorExonDict[chrom].append([string_pos, string_pos+150])
+
+
+        for sample in range(num_samples):
+            print('starting sample')
+            if(LSH_hash): 
+                exonDictR = tumorExonDict
+            else: 
+                exonDictR = exonDict
+            real_working_dir = working_dir + f'samplenum_{sample}/'
+            makedir(real_working_dir)
+            clear_dir(real_working_dir)
+            coverage = random.choice(coverage_list)
+            num_single_cells = random.choice(num_single_cell_list)
+            read_length_index = random.randint(0, len(read_len_list)-1)
+            read_len = read_len_list[read_length_index]
+            frag_len = frag_len_list[read_length_index]
+            paired = random.choice(paired_list)
+            WES = random.choice(WES_list)
+            error_rate = random.choice(error_rate_list)
+            with open(real_working_dir + 'parameter_list.txt', 'w') as f:
+                f.write('num leaves: ' + str(num_clones)+'\n')
+                f.write('dir_conc: ' + str(alpha)+'\n')
+                f.write('cell pop: ' + str(pop)+'\n')
+                f.write('coverage: ' + str(coverage)+'\n')
+                f.write('num single cells: ' + str(num_single_cells)+'\n')
+                f.write('read len: ' + str(read_len)+'\n')
+                f.write('frag len: ' + str(frag_len)+'\n')
+                f.write('paired: ' + str(paired)+'\n')
+                f.write('WES: ' + str(WES)+'\n')
+                f.write('rates of variants: ' + str(avg_rate_list)+'\n')
+                f.write('full poisson time: ' + str(depth) + '\n')
+                f.write('error rate: ' + str(error_rate) + '\n')
+            getmemory()
+            if(paired):
+                if(WES):
+                    exonrunPairedSim(use_nodes, coverage, read_len, frag_len, working_dir, real_working_dir,
+                                    batch_size, root_node, exonDictR, numchrommap, subblock_size, alpha, error_rate, flag=0)
+                    for i in range(num_single_cells):
+                        single_cell_dir = working_dir+f'samplenum_{sample}_singlecell_{i}/'
+                        makedir(single_cell_dir)
+                        clear_dir(single_cell_dir)
+                        exonrunPairedSim(use_nodes, coverage, read_len, frag_len, working_dir, single_cell_dir,
+                                        batch_size, root_node, exonDictR, numchrommap, subblock_size, alpha, error_rate, flag=2)
+
+                else:
+                    runPairedSim(use_nodes, coverage, read_len, frag_len, working_dir,
+                                real_working_dir, batch_size, root_node, alpha, error_rate, flag=0)
+                    for i in range(num_single_cells):
+                        single_cell_dir = working_dir+f'samplenum_{sample}_singlecell_{i}/'
+                        makedir(single_cell_dir)
+                        clear_dir(single_cell_dir) 
+                        runPairedSim(use_nodes, coverage, read_len, frag_len, working_dir,
+                                    single_cell_dir, batch_size, root_node, alpha, error_rate, flag=2)
             else:
-                runSim(use_nodes, coverage, read_len, working_dir,
-                       real_working_dir, batch_size, root_node, alpha, error_rate, flag=0)
-                for i in range(num_single_cells):
-                    single_cell_dir = working_dir+f'samplenum_{sample}_singlecell_{i}/'
-                    makedir(single_cell_dir)
-                    clear_dir(single_cell_dir) 
-                    runSim(use_nodes, coverage, read_len, working_dir,
-                           single_cell_dir, batch_size, root_node, alpha, error_rate, flag=2)
-print('finished tumors')
-liquid_biopsy = random.choice(liquid_biopsy_list)
-if(liquid_biopsy):
-    lb_dir = base_working_dir + 'liquid_biopsy/'
-    makedir(lb_dir)
-    clear_dir(lb_dir)
-    lb_alpha = random.choice(alpha_list)
-    lb_coverage = random.choice(coverage_list)
-    ctdna_frac = random.choice(ctdna_frac_list)
-    lbrunSim(num_tumors, running_clone_list, lb_coverage,
-             base_working_dir, lb_dir, ref_root_node, lb_alpha, ctdna_frac, 6)
+                if(WES):
+                    exonrunSim(use_nodes, coverage, read_len, working_dir, real_working_dir,
+                            batch_size, root_node, exonDictR, numchrommap, subblock_size, alpha, error_rate, flag=0)
+                    for i in range(num_single_cells):
+                        single_cell_dir = working_dir+f'samplenum_{sample}_singlecell_{i}/'
+                        makedir(single_cell_dir)
+                        clear_dir(single_cell_dir) 
+                        exonrunSim(use_nodes, coverage, read_len, working_dir, single_cell_dir,
+                                batch_size, root_node, exonDictR, numchrommap, subblock_size, alpha, error_rate, flag=2)
 
-te = time.time()
-print('time elapsed', te-ts)
+                else:
+                    runSim(use_nodes, coverage, read_len, working_dir,
+                        real_working_dir, batch_size, root_node, alpha, error_rate, flag=0)
+                    for i in range(num_single_cells):
+                        single_cell_dir = working_dir+f'samplenum_{sample}_singlecell_{i}/'
+                        makedir(single_cell_dir)
+                        clear_dir(single_cell_dir) 
+                        runSim(use_nodes, coverage, read_len, working_dir,
+                            single_cell_dir, batch_size, root_node, alpha, error_rate, flag=2)
+    print('finished tumors')
+    liquid_biopsy = random.choice(liquid_biopsy_list)
+    if(liquid_biopsy):
+        lb_dir = base_working_dir + 'liquid_biopsy/'
+        makedir(lb_dir)
+        clear_dir(lb_dir)
+        lb_alpha = random.choice(alpha_list)
+        lb_coverage = random.choice(coverage_list)
+        ctdna_frac = random.choice(ctdna_frac_list)
+        lbrunSim(num_tumors, running_clone_list, lb_coverage,
+                base_working_dir, lb_dir, ref_root_node, lb_alpha, ctdna_frac, 6)
+
+    te = time.time()
+    print('time elapsed', te-ts)
+
+if __name__ == "__main__":
+    msg = "MosaicSim for cancer genome simulation"
+    parser = argparse.ArgumentParser(description = msg)
+    parser.add_argument("-o", "--outputDir", help="output directory full path", required=True)
+    parser.add_argument("-c", "--configFile", help="yaml config file for fine tune parameters")
+    args = parser.parse_args()
+
+    script_dir = os.path.dirname(os.path.realpath(__file__))
+    tab = ["ACTG", "TGAC"]
+    list_of_bases = ['A', 'C', 'T', 'G']
+    list_of_pairs = ['CA', 'CG', 'CT', 'TA', 'TC', 'TG']
+    sig_file = '{}/data/signatures.txt'.format(script_dir)
+    num_signatures = 78
+    use_signatures = False
+    signature_alpha = 10
+    full_genome = '{}/data/hg38.fa'.format(script_dir)
+    exon_file = '{}/data/exonsegments.txt'.format(script_dir)
+    num_samples_list = [7]
+    num_tumors_list = [2]
+    read_len_list = [75, 150, 500, 2000]
+    frag_len_list = [150,200, 1000, 3000]
+    alpha_list = [10]
+    paired_list = [True]
+    WES_list = [False, True]
+    use_leaf_only = False
+    error_rate_list = [0.0, 0.0, 0.0, 0.00001,0.00001,0.0001, 0.001]
+    clone_list = [5]
+    ultralow_rates_list = [1e-15]
+    low_rates_list = [1e-15, 1e-13, 1e-10]
+    medium_rates_list = [5e-9, 4e-10, 9e-10, 3e-9]
+    high_rates_list = [3e-8, 9e-9, 7e-9]
+    ultrahigh_rates_list = [5e-8,5e-7,6e-7,5e-8,1e-7]
+    coverage_list = [2, 5, 10, 15,15, 25,25, 30,30]
+    pop_list = [8e8]
+    num_single_cell_list = [0]
+    liquid_biopsy_list = [False]
+    batch_size = 1
+    subblock_size = 1
+    LSH_hash = False
+    LSHStringNum = 10000000
+    kmer_len=50
+    num_perm=64
+    thresh=0.33
+    ctdna_frac_list = [0.96]
+    ref_coverage = 30
+    ref_clones = 5
+    ref_paired = True
+    ref_WES = False
+    ref_erate = 0.0
+    list_of_rates = [high_rates_list, ultralow_rates_list, high_rates_list, ultralow_rates_list, high_rates_list, ultralow_rates_list,ultralow_rates_list, ultralow_rates_list, ultralow_rates_list, ultralow_rates_list, ultralow_rates_list, ultralow_rates_list]
+
+    #random seed
+    seed=123
+    
+    if args.configFile is None:
+        print("No config file provided; using default parameters")
+    else:
+        # print(args.configFile)
+        yamlFile = args.configFile
+        with open(yamlFile, "r") as file:
+            params = yaml.safe_load(file)
+        # print(params)
+        for key in params.keys():
+            vars()[key] = params[key]
+    
+    main(args.outputDir, tab, list_of_bases, list_of_pairs, sig_file, num_signatures, use_signatures, signature_alpha, full_genome,
+         exon_file, num_samples_list, num_tumors_list, read_len_list, frag_len_list, alpha_list, paired_list, WES_list, use_leaf_only,
+         error_rate_list, clone_list, ultralow_rates_list, low_rates_list, medium_rates_list, high_rates_list, ultrahigh_rates_list,
+         coverage_list, pop_list, num_single_cell_list, liquid_biopsy_list, batch_size, subblock_size, LSH_hash, LSHStringNum, kmer_len, num_perm, 
+         thresh, ctdna_frac_list, ref_coverage, ref_clones, ref_paired, ref_WES, ref_erate, seed, list_of_rates)

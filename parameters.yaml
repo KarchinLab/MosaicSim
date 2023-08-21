@@ -1,0 +1,65 @@
+---
+# set random seed
+seed: 123
+
+tab: [ACTG, TGAC]
+
+# signature parameters
+list_of_bases: ['A', 'C', 'T', 'G']
+list_of_pairs: ['CA', 'CG', 'CT', 'TA', 'TC', 'TG']
+sig_file: './data/signatures.txt'
+num_signatures: 78
+use_signatures: False
+signature_alpha: 10
+
+#genome and exome delimiters
+full_genome: './data/hg38.fa'
+EXON_FILE: './data/exonsegments.txt'
+
+#parameters for the full simulation. The program will sample randomly from each list
+num_samples_list: [7]
+num_tumors_list: [2]
+# frag length should be at least 100, and the read length should be less than the frag length
+read_len_list: [75, 150, 500, 2000]
+frag_len_list: [150,200, 1000, 3000]
+
+#concentration of the clones
+alpha_list: [10]
+
+#can be True or False for these
+paired_list: [True]
+WES_list: [False, True]
+
+use_leaf_only: False
+error_rate_list: [0.0, 0.0, 0.0, 0.00001,0.00001,0.0001, 0.001]
+clone_list: [5]
+
+#rate list define the tumor mutations, can define or change however you want. 
+ultralow_rates_list: &ultralow_rates_list [1.e-15]
+low_rates_list: &low_rates_list [1.e-15, 1.e-13, 1.e-10]
+medium_rates_list: &medium_rates_list [5.e-9, 4.e-10, 9.e-10, 3.e-9]
+high_rates_list: &high_rates_list [3.e-8, 9.e-9, 7.e-9]
+ultrahigh_rates_list: &ultrahigh_rates_list [5.e-8,5.e-7,6.e-7,5.e-8,1.e-7]
+coverage_list: [2, 5, 10, 15,15, 25,25, 30,30]
+pop_list: [8e8] #recommend to keep close to this value
+num_single_cell_list: [0]
+liquid_biopsy_list: [False]
+batch_size: 1
+subblock_size: 1
+LSH_hash: False #If false, doesn't explore alternate reads for WES and uses breakpoints in EXON_FILE
+LSHStringNum: 10000000 #G_N in the paper -- the sampling number
+kmer_len: 50
+num_perm: 64
+thresh: 0.33
+ctdna_frac_list: [0.96] #fraction of real tumor reads in liquid biopsy
+
+#reference/normal sequencing parameters
+ref_coverage: 30 #random.choice(coverage_list)
+ref_clones: 5  # this doesnt matter
+ref_paired: True
+ref_WES: False
+ref_erate: 0.0 #random.choice(error_rate_list)
+
+#SNV, CNV, DEL, DELSMALL, INVERSION, TRANSLOCATION, BFB, CHROMOTHRIP, CHROMOPLEX, INSERTIONSMALL, KATAEGIS, ANEUPLOIDY
+list_of_rates: [*high_rates_list, *ultralow_rates_list, *high_rates_list, *ultralow_rates_list, *high_rates_list, *ultralow_rates_list, *ultralow_rates_list, *ultralow_rates_list, *ultralow_rates_list, *ultralow_rates_list, *ultralow_rates_list, *ultralow_rates_list]
+
