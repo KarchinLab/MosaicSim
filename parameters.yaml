@@ -42,7 +42,7 @@ medium_rates_list: &medium_rates_list [5.e-9, 4.e-10, 9.e-10, 3.e-9]
 high_rates_list: &high_rates_list [3.e-8, 9.e-9, 7.e-9]
 ultrahigh_rates_list: &ultrahigh_rates_list [5.e-8,5.e-7,6.e-7,5.e-8,1.e-7]
 coverage_list: [2, 5, 10, 15,15, 25,25, 30,30]
-pop_list: [8e8] #recommend to keep close to this value
+pop_list: [8.e+8] #recommend to keep close to this value
 num_single_cell_list: [0]
 liquid_biopsy_list: [False]
 batch_size: 1
