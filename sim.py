@@ -560,9 +560,9 @@ def generateMatrix(the_matrix, list_of_weights, time_matrix):
     return the_matrix, avg_rate
 
 
-def getTree(num_clones, pop, working_dir, seed):
+def getTree(num_clones, pop, working_dir, tree_seed):
     tree_sequence = msprime.simulate(
-        sample_size=num_clones, Ne=pop, recombination_rate=0, random_seed=seed)
+        sample_size=num_clones, Ne=pop, recombination_rate=0, random_seed=tree_seed)
     tree_sequence.dump(working_dir + '/tree_sequence.tree')
     tree = tree_sequence.first()
     return tree
@@ -1159,10 +1159,10 @@ def main(base_working_dir, tab = ["ACTG", "TGAC"], list_of_bases = ['A', 'C', 'T
          medium_rates_list = [5e-9, 4e-10, 9e-10, 3e-9], high_rates_list = [3e-8, 9e-9, 7e-9], ultrahigh_rates_list = [5e-8,5e-7,6e-7,5e-8,1e-7],
          coverage_list = [2, 5, 10, 15,15, 25,25, 30,30], pop_list = [8e8], num_single_cell_list = [0], liquid_biopsy_list = [False],
          batch_size = 1, subblock_size = 1, LSH_hash = False, LSHStringNum = 10000000, kmer_len=50, num_perm=64, thresh=0.33, ctdna_frac_list = [0.96],
-         ref_coverage = 30, ref_clones = 5, ref_paired = True, ref_WES = False, ref_erate = 0.0, seed=123, list_of_rates=[]):
+         ref_coverage = 30, ref_clones = 5, ref_paired = True, ref_WES = False, ref_erate = 0.0, list_of_rates=[], random_seed=123, tree_seed=123):
    
     # update parameters from yaml file
-    random.seed(seed)
+    random.seed(random_seed)
 
     if len(list_of_rates) == 0:
         list_of_rates = [high_rates_list, ultralow_rates_list, high_rates_list, ultralow_rates_list, high_rates_list, ultralow_rates_list, ultralow_rates_list, ultralow_rates_list, ultralow_rates_list, ultralow_rates_list, ultralow_rates_list, ultralow_rates_list]
@@ -1312,7 +1312,7 @@ def main(base_working_dir, tab = ["ACTG", "TGAC"], list_of_bases = ['A', 'C', 'T
         wgz(working_dir + str(root_node) + '.gz', baseline_chroms)
         del baseline_chroms
         print('written reg')
-        tree = getTree(num_clones, pop, working_dir, seed)
+        tree = getTree(num_clones, pop, working_dir, tree_seed)
         list_of_paths = getPaths(tree, num_clones)
         time_matrix, depth = getTimeMatrix(tree, num_clones)
         mutationedge_list, avg_rate_list = generateOrder(
@@ -1482,8 +1482,9 @@ if __name__ == "__main__":
     list_of_rates = [high_rates_list, ultralow_rates_list, high_rates_list, ultralow_rates_list, high_rates_list, ultralow_rates_list,ultralow_rates_list, ultralow_rates_list, ultralow_rates_list, ultralow_rates_list, ultralow_rates_list, ultralow_rates_list]
 
     #random seed
-    seed=123
-    
+    random_seed=123
+    tree_seed = 123
+
     if args.configFile is None:
         print("No config file provided; using default parameters")
     else:
@@ -1499,4 +1500,4 @@ if __name__ == "__main__":
          exon_file, num_samples_list, num_tumors_list, read_len_list, frag_len_list, alpha_list, paired_list, WES_list, use_leaf_only,
          error_rate_list, clone_list, ultralow_rates_list, low_rates_list, medium_rates_list, high_rates_list, ultrahigh_rates_list,
          coverage_list, pop_list, num_single_cell_list, liquid_biopsy_list, batch_size, subblock_size, LSH_hash, LSHStringNum, kmer_len, num_perm, 
-         thresh, ctdna_frac_list, ref_coverage, ref_clones, ref_paired, ref_WES, ref_erate, seed, list_of_rates)
+         thresh, ctdna_frac_list, ref_coverage, ref_clones, ref_paired, ref_WES, ref_erate, list_of_rates, random_seed, tree_seed)

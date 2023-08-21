@@ -1,6 +1,7 @@
 ---
 # set random seed
-seed: 123
+random_seed: 123
+tree_seed: 123
 
 tab: [ACTG, TGAC]
 
