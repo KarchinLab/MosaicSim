@@ -1240,8 +1240,8 @@ def main(base_working_dir, tab = ["ACTG", "TGAC"], list_of_bases = ['A', 'C', 'T
     getmemory()
     print(len(strings_to_idx))
 
-    makedir(base_working_dir)
-    clear_dir(base_working_dir)
+    # makedir(base_working_dir)
+    # clear_dir(base_working_dir)
     print(base_working_dir)
     if(LSH_hash): 
         lshindex =[]
