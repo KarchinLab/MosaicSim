@@ -18,7 +18,7 @@ import re
 # from parameters import *
 import argparse
 import yaml
-
+from collections import defaultdict
 
 
 def getmemory():
@@ -1049,6 +1049,7 @@ def exonrunPairedSim(num_clones, coverage, rl, fl, rloc, floc, batch, root, exon
         ls = rgz(f'{rloc}{root}.gz')
     giga_list = []
     giga_list2 = []
+    clone_proportion_dict = defaultdict(int)
     while(cov < coverage):
         print(giga_list)
         print(giga_list2)
@@ -1058,6 +1059,7 @@ def exonrunPairedSim(num_clones, coverage, rl, fl, rloc, floc, batch, root, exon
             clone = pickdclone(distn, num_clones)
             if(flag == 0):
                 ls = rgz(f'{rloc}{clone}.gz')
+                clone_proportion_dict[clone] += 1
             chromnum = 0
             for chrom in ls:
                 frag_len = 0
@@ -1093,6 +1095,14 @@ def exonrunPairedSim(num_clones, coverage, rl, fl, rloc, floc, batch, root, exon
         giga_list2.clear()
         print('first batch write done')
         cov += 2*batch*subblock*ratio
+    
+    if (flag == 0):
+        total_num = sum(clone_proportion_dict.values())
+        cpFile = open('{}clone_proportion.txt'.format(floc), 'w')
+        for cloneKey in sorted(clone_proportion_dict.keys(), reverse=True):
+            cloneProp = clone_proportion_dict[cloneKey] / total_num
+            cpFile.write("{}\t{:.2f}\n".format(cloneKey, cloneProp))
+        cpFile.close()
     del giga_list
     del giga_list2
 
@@ -1171,6 +1181,7 @@ def main(base_working_dir, tab = ["ACTG", "TGAC"], list_of_bases = ['A', 'C', 'T
    
     # update parameters from yaml file
     random.seed(random_seed)
+    np.random.seed(random_seed)
 
     if len(list_of_rates) == 0:
         list_of_rates = [high_rates_list, ultralow_rates_list, high_rates_list, ultralow_rates_list, high_rates_list, ultralow_rates_list, ultralow_rates_list, ultralow_rates_list, ultralow_rates_list, ultralow_rates_list, ultralow_rates_list, ultralow_rates_list]
