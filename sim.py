@@ -918,6 +918,7 @@ def runPairedSim(num_clones, coverage, rl, fl, read_loc, floc, batch, root, alph
         ls = rgz(f'{read_loc}{root}.gz')
     giga_list = []
     giga_list2 = []
+    clone_proportion_dict = defaultdict(int)
     while(cov < coverage):
         print(giga_list)
         print(giga_list2)
@@ -928,6 +929,7 @@ def runPairedSim(num_clones, coverage, rl, fl, read_loc, floc, batch, root, alph
             print(clone)
             if(flag == 0):
                 ls = rgz(f'{read_loc}{clone}.gz')
+                clone_proportion_dict += 1
             for chrom in ls:
                 frag_len = 0
                 while (frag_len <= rl):
@@ -959,6 +961,15 @@ def runPairedSim(num_clones, coverage, rl, fl, read_loc, floc, batch, root, alph
         giga_list2.clear()
         print('first batch write done')
         cov += 2*batch*ratio
+    
+    if (flag == 0):
+        total_num = sum(clone_proportion_dict.values())
+        cpFile = open('{}clone_proportion.txt'.format(floc), 'w')
+        for cloneKey in sorted(clone_proportion_dict.keys(), reverse=True):
+            cloneProp = clone_proportion_dict[cloneKey] / total_num
+            cpFile.write("{}\t{:.2f}\n".format(cloneKey, cloneProp))
+        cpFile.close()
+        
     del giga_list
     del giga_list2
     del ls
@@ -1051,9 +1062,6 @@ def exonrunPairedSim(num_clones, coverage, rl, fl, rloc, floc, batch, root, exon
     giga_list2 = []
     clone_proportion_dict = defaultdict(int)
     while(cov < coverage):
-        # print(giga_list)
-        # print(giga_list2)
-        # print(cov)
         for i in range(batch):
             distn = getDirichletClone(num_clones, alpha)
             # print(distn)
