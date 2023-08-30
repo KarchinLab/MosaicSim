@@ -908,7 +908,7 @@ def runPairedSim(num_clones, coverage, rl, fl, read_loc, floc, batch, root, alph
         f = open(floc + f'singlecellleft.fasta', 'w')
         f2 = open(floc + f'singlecellright.fasta', 'w')
     cov = 0.0
-    ratio = 2*rl/fl
+    ratio = rl/fl
     #random_str = 0
     ls = []
     if(flag == 2):
@@ -1051,9 +1051,9 @@ def exonrunPairedSim(num_clones, coverage, rl, fl, rloc, floc, batch, root, exon
     giga_list2 = []
     clone_proportion_dict = defaultdict(int)
     while(cov < coverage):
-        print(giga_list)
-        print(giga_list2)
-        print(cov)
+        # print(giga_list)
+        # print(giga_list2)
+        # print(cov)
         for i in range(batch):
             distn = getDirichletClone(num_clones, alpha)
             # print(distn)
@@ -1066,14 +1066,14 @@ def exonrunPairedSim(num_clones, coverage, rl, fl, rloc, floc, batch, root, exon
             for chrom in ls:
                 frag_len = 0
                 while(frag_len <= rl):
-                    frag_len = getfrag(fl) #HERE
+                    frag_len = getfrag(fl)
                 if random.random() < 0.5:
                     altchrom = chrom
                 else:
                     altchrom = revc(chrom)
                 for interval in exonDict[numchrommap[chromnum]]:
                     for i in range(subblock):
-                        startindex = random.randint(interval[0], interval[1])
+                        startindex = random.randint(interval[0], interval[1]) # MODIFY -#
                         sub = altchrom[startindex:startindex+fl]
                         random_str = ''.join(random.choices(
                             string.ascii_letters, k=15))
@@ -1310,7 +1310,7 @@ def main(base_working_dir, list_of_bases = ['A', 'C', 'T', 'G'], list_of_pairs =
             runSim(ref_int_nodes, ref_coverage, ref_read_len, reference_working_dir,
                 reference_working_dir, batch_size, ref_root_node, ref_alpha, ref_erate, flag=1)
     getmemory()
-    exit()
+
     running_clone_list = []
     num_tumors = random.choice(num_tumors_list)
     num_samples = random.choice(num_samples_list)
