@@ -1230,11 +1230,11 @@ def main(base_working_dir, tab = ["ACTG", "TGAC"], list_of_bases = ['A', 'C', 'T
     for fasta in fasta_sequences:
         name = fasta.id
         if (name in reduced_chrom_dict):
-            print(fasta.name)
+            # print(fasta.name)
             chroms.append(str(fasta.seq).upper())
             chroms.append(str(fasta.seq).upper())
         elif(name in sex_chroms):
-            print(fasta.name)
+            # print(fasta.name)
             chroms.append(str(fasta.seq).upper())
         else:
             continue
@@ -1258,7 +1258,8 @@ def main(base_working_dir, tab = ["ACTG", "TGAC"], list_of_bases = ['A', 'C', 'T
                 strings_to_idx.append(chroms[reversemap[chrom]][start_i:end_i])
     getmemory()
     print(len(strings_to_idx))
-
+    print(strings_to_idx)
+    exit()
     # makedir(base_working_dir)
     # clear_dir(base_working_dir)
     print(base_working_dir)
@@ -1465,7 +1466,7 @@ if __name__ == "__main__":
     use_signatures = False
     signature_alpha = 10
     full_genome = '{}/data/hg38.fa'.format(script_dir)
-    exon_file = '{}/data/exonsegments.txt'.format(script_dir)
+    EXON_FILE = '{}/data/exonsegments.txt'.format(script_dir)
     num_samples_list = [7]
     num_tumors_list = [2]
     read_len_list = [75, 150, 500, 2000]
@@ -1516,7 +1517,7 @@ if __name__ == "__main__":
             vars()[key] = params[key]
     
     main(args.outputDir, tab, list_of_bases, list_of_pairs, sig_file, num_signatures, use_signatures, signature_alpha, full_genome,
-         exon_file, num_samples_list, num_tumors_list, read_len_list, frag_len_list, alpha_list, paired_list, WES_list, use_leaf_only,
+         EXON_FILE, num_samples_list, num_tumors_list, read_len_list, frag_len_list, alpha_list, paired_list, WES_list, use_leaf_only,
          error_rate_list, clone_list, ultralow_rates_list, low_rates_list, medium_rates_list, high_rates_list, ultrahigh_rates_list,
          coverage_list, pop_list, num_single_cell_list, liquid_biopsy_list, batch_size, subblock_size, LSH_hash, LSHStringNum, kmer_len, num_perm, 
          thresh, ctdna_frac_list, ref_coverage, ref_clones, ref_paired, ref_WES, ref_erate, list_of_rates, random_seed, tree_seed)
