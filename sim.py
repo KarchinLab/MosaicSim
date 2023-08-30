@@ -1250,16 +1250,16 @@ def main(base_working_dir, tab = ["ACTG", "TGAC"], list_of_bases = ['A', 'C', 'T
         for line in f:
             chrom, start, end = line.split()
             if chrom in chrom_dict:
-                start_i = int(start)
+                start_i = int(start) - 1
                 end_i = int(end)
                 interval = [start_i, end_i]
                 total_num_intervals += 1
                 exonDict[chrom].append(interval)
+                print(chroms[reversemap[chrom]])
                 strings_to_idx.append(chroms[reversemap[chrom]][start_i:end_i])
     getmemory()
-    print(len(strings_to_idx))
-    print(strings_to_idx)
-    exit()
+    # print(len(strings_to_idx))
+
     # makedir(base_working_dir)
     # clear_dir(base_working_dir)
     print(base_working_dir)
