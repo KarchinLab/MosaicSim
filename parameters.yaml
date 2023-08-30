@@ -3,7 +3,6 @@
 random_seed: 123
 tree_seed: 123
 
-tab: [ACTG, TGAC]
 
 # signature parameters
 list_of_bases: ['A', 'C', 'T', 'G']
