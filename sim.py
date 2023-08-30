@@ -1056,7 +1056,9 @@ def exonrunPairedSim(num_clones, coverage, rl, fl, rloc, floc, batch, root, exon
         print(cov)
         for i in range(batch):
             distn = getDirichletClone(num_clones, alpha)
+            # print(distn)
             clone = pickdclone(distn, num_clones)
+            # print(clone)
             if(flag == 0):
                 ls = rgz(f'{rloc}{clone}.gz')
                 clone_proportion_dict[clone] += 1
@@ -1064,7 +1066,7 @@ def exonrunPairedSim(num_clones, coverage, rl, fl, rloc, floc, batch, root, exon
             for chrom in ls:
                 frag_len = 0
                 while(frag_len <= rl):
-                    frag_len = getfrag(fl)
+                    frag_len = getfrag(fl) #HERE
                 if random.random() < 0.5:
                     altchrom = chrom
                 else:
@@ -1169,7 +1171,7 @@ chrom_dict = ['chr1', 'chr10', 'chr11', 'chr12', 'chr13', 'chr14', 'chr15', 'chr
 reduced_chrom_dict = ['chr1', 'chr10', 'chr11', 'chr12', 'chr13', 'chr14', 'chr15', 'chr16', 'chr17', 'chr18', 'chr19', 'chr2', 'chr20', 'chr21', 'chr22', 'chr3', 'chr4', 'chr5', 'chr6', 'chr7', 'chr8', 'chr9']
 sex_chroms = ['chrX', 'chrY']
 
-def main(base_working_dir, tab = ["ACTG", "TGAC"], list_of_bases = ['A', 'C', 'T', 'G'], list_of_pairs = ['CA', 'CG', 'CT', 'TA', 'TC', 'TG'], 
+def main(base_working_dir, list_of_bases = ['A', 'C', 'T', 'G'], list_of_pairs = ['CA', 'CG', 'CT', 'TA', 'TC', 'TG'], 
          sig_file = './data/signatures.txt', num_signatures = 78, use_signatures = False, signature_alpha = 10, full_genome = './data/hg38.fa',
          EXON_FILE = './data/exonsegments.txt', num_samples_list = [7], num_tumors_list = [2], read_len_list = [75, 150, 500, 2000],
          frag_len_list = [150,200, 1000, 3000], alpha_list = [10], paired_list = [True], WES_list = [False, True], use_leaf_only = False,
@@ -1186,7 +1188,8 @@ def main(base_working_dir, tab = ["ACTG", "TGAC"], list_of_bases = ['A', 'C', 'T
     if len(list_of_rates) == 0:
         list_of_rates = [high_rates_list, ultralow_rates_list, high_rates_list, ultralow_rates_list, high_rates_list, ultralow_rates_list, ultralow_rates_list, ultralow_rates_list, ultralow_rates_list, ultralow_rates_list, ultralow_rates_list, ultralow_rates_list]
 
-    tab = str.maketrans(tab[0], tab[1])
+    global tab 
+    tab = str.maketrans("ACTG", "TGAC")
 
     if use_signatures:
         sig_df = pd.read_csv(sig_file, sep = '\t', header = None)
@@ -1307,7 +1310,7 @@ def main(base_working_dir, tab = ["ACTG", "TGAC"], list_of_bases = ['A', 'C', 'T
             runSim(ref_int_nodes, ref_coverage, ref_read_len, reference_working_dir,
                 reference_working_dir, batch_size, ref_root_node, ref_alpha, ref_erate, flag=1)
     getmemory()
-
+    exit()
     running_clone_list = []
     num_tumors = random.choice(num_tumors_list)
     num_samples = random.choice(num_samples_list)
@@ -1458,7 +1461,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     script_dir = os.path.dirname(os.path.realpath(__file__))
-    tab = ["ACTG", "TGAC"]
     list_of_bases = ['A', 'C', 'T', 'G']
     list_of_pairs = ['CA', 'CG', 'CT', 'TA', 'TC', 'TG']
     sig_file = '{}/data/signatures.txt'.format(script_dir)
@@ -1516,7 +1518,7 @@ if __name__ == "__main__":
         for key in params.keys():
             vars()[key] = params[key]
     
-    main(args.outputDir, tab, list_of_bases, list_of_pairs, sig_file, num_signatures, use_signatures, signature_alpha, full_genome,
+    main(args.outputDir, list_of_bases, list_of_pairs, sig_file, num_signatures, use_signatures, signature_alpha, full_genome,
          EXON_FILE, num_samples_list, num_tumors_list, read_len_list, frag_len_list, alpha_list, paired_list, WES_list, use_leaf_only,
          error_rate_list, clone_list, ultralow_rates_list, low_rates_list, medium_rates_list, high_rates_list, ultrahigh_rates_list,
          coverage_list, pop_list, num_single_cell_list, liquid_biopsy_list, batch_size, subblock_size, LSH_hash, LSHStringNum, kmer_len, num_perm, 
