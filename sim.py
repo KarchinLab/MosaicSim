@@ -1188,12 +1188,13 @@ def main(base_working_dir, tab = ["ACTG", "TGAC"], list_of_bases = ['A', 'C', 'T
 
     tab = str.maketrans(tab[0], tab[1])
 
-    sig_df = pd.read_csv(sig_file, sep = '\t', header = None)
-    sig_df = sig_df.iloc[1:]
-    sig_df = sig_df.iloc[:,1:]
-    signatures_matrix = sig_df.to_numpy()
-    signature_distributions = [float(1/num_signatures)]*num_signatures
-
+    if use_signatures:
+        sig_df = pd.read_csv(sig_file, sep = '\t', header = None)
+        sig_df = sig_df.iloc[1:]
+        sig_df = sig_df.iloc[:,1:]
+        signatures_matrix = sig_df.to_numpy()
+        signature_distributions = [float(1/num_signatures)]*num_signatures
+    
     read_length_index = random.randint(0, len(read_len_list)-1)
     ref_read_len = read_len_list[read_length_index]
     ref_frag_len = frag_len_list[read_length_index]
@@ -1201,7 +1202,6 @@ def main(base_working_dir, tab = ["ACTG", "TGAC"], list_of_bases = ['A', 'C', 'T
     ref_root_node = ref_tot_nodes-1
     ref_int_nodes = ref_root_node-1
     ref_alpha = random.choice(alpha_list)
-
 
     ## TO MODIFY
     # storage_dir = '/home/assrivat/simulation_results/'
