@@ -1347,7 +1347,6 @@ def main(base_working_dir, list_of_bases = ['A', 'C', 'T', 'G'], list_of_pairs =
         time_matrix, depth = getTimeMatrix(tree, num_clones)
         mutationedge_list, avg_rate_list = generateOrder(
             tree, time_matrix, list_of_rates)
-        exit()
         infos, muts = applyMutations(
             tot_nodes, working_dir, list_of_paths, use_signatures, mutationedge_list)
         with open(working_dir + 'mutation_list.txt', 'w') as f:
@@ -1688,12 +1687,9 @@ for tum in range(num_tumors):
     tree = getTree(num_clones, pop, working_dir, tree_seed)
     list_of_paths = getPaths(tree, num_clones)
     print(list_of_paths)
-    # exit()
     time_matrix, depth = getTimeMatrix(tree, num_clones)
     mutationedge_list, avg_rate_list = generateOrder(
         tree, time_matrix, list_of_rates)
-    print(mutationedge_list)
-    exit()
     infos, muts = applyMutations(
         tot_nodes, working_dir, list_of_paths, use_signatures, mutationedge_list)
     with open(working_dir + 'mutation_list.txt', 'w') as f:
