@@ -862,8 +862,6 @@ def runSim(num_clones, coverage, rl, read_loc, floc, batch, root, alpha, erate, 
         ls = rgz(f'{read_loc}{root}.gz')
     giga_list = []
     while(cov < coverage):
-        print(giga_list)
-        print(cov)
         for i in range(batch):
             distn = getDirichletClone(num_clones, alpha)
             clone = pickdclone(distn, num_clones)
@@ -920,13 +918,9 @@ def runPairedSim(num_clones, coverage, rl, fl, read_loc, floc, batch, root, alph
     giga_list2 = []
     clone_proportion_dict = defaultdict(int)
     while(cov < coverage):
-        print(giga_list)
-        print(giga_list2)
-        print(cov)
         for i in range(batch):
             distn = getDirichletClone(num_clones, alpha)
             clone = pickdclone(distn, num_clones)
-            print(clone)
             if(flag == 0):
                 ls = rgz(f'{read_loc}{clone}.gz')
                 clone_proportion_dict += 1
@@ -1002,8 +996,6 @@ def exonrunSim(num_clones, coverage, rl, rloc, floc, batch, root, exonDict, numc
         ls = rgz(f'{rloc}{root}.gz')
     giga_list = []
     while(cov < coverage):
-        print(giga_list)
-        print(cov)
         for i in range(batch):
             distn = getDirichletClone(num_clones, alpha)
             clone = pickdclone(distn, num_clones)
@@ -1154,7 +1146,7 @@ def lbrunSim(num_tumors, num_clones_list, coverage, base_dir, floc, root, alpha,
     perbatch_tumor = int(frags_from_tumor/batchsize)
     perbatch_normal = int(frags_from_normal/batchsize)
     for i in range(batchsize):
-        print(i)
+        # print(i)
         alltumorfrags = random.choices(ctdna_frag, k=perbatch_tumor)
         allnormalfrags = random.choices(cfdna_frag, k=perbatch_normal)
         for frag in alltumorfrags:
