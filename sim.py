@@ -1081,7 +1081,7 @@ def exonrunPairedSim(num_clones, coverage, rl, fl, rloc, floc, batch, root, exon
                     altchrom = revc(chrom)
                 for interval in exonDict[numchrommap[chromnum]]:
                     for i in range(subblock):
-                        startindex = random.randint(interval[0], interval[1]) # MODIFY -#
+                        startindex = random.randint(interval[0], interval[1]) - 10 # MODIFIED - 5
                         sub = altchrom[startindex:startindex+fl]
                         random_str = ''.join(random.choices(
                             string.ascii_letters, k=15))
@@ -1321,9 +1321,24 @@ with open(EXON_FILE, 'r') as f:
             interval = [start_i, end_i]
             total_num_intervals += 1
             exonDict[chrom].append(interval)
-            print(chroms[reversemap[chrom]])
+            # print(chroms[reversemap[chrom]])
             strings_to_idx.append(chroms[reversemap[chrom]][start_i:end_i])
 getmemory()
+
+targetDict = {}
+# strings_to_idx_target = []
+for i in chrom_dict:
+    targetDict[i] = []
+with open(target_file, 'r') as f:
+    for line in f:
+        chrom, start, end = line.split()
+        if chrom in chrom_dict:
+            start_i = int(start) - 1
+            end_i = int(end)
+            interval = [start_i, end_i]
+            targetDict[chrom].append(interval)
+            # print(chroms[reversemap[chrom]])
+            # strings_to_idx_target.append(chroms[reversemap[chrom]][start_i:end_i])
 # print(len(strings_to_idx))
 
 # makedir(base_working_dir)
@@ -1358,20 +1373,35 @@ with open(reference_working_dir + 'parameter_list.txt', 'w') as f:
 
 del chroms
 getmemory()
-if(ref_paired):
-    if(ref_WES):
-        exonrunPairedSim(ref_int_nodes, ref_coverage, ref_read_len, ref_frag_len, reference_working_dir,
-                        reference_working_dir, batch_size, ref_root_node, exonDict, numchrommap, subblock_size, ref_alpha, ref_erate, flag=1)
-    else:
-        runPairedSim(ref_int_nodes, ref_coverage, ref_read_len, ref_frag_len, reference_working_dir,
+
+# reference fasta
+
+# WGS
+runPairedSim(ref_int_nodes, ref_coverage, ref_read_len, ref_frag_len, reference_working_dir,
                     reference_working_dir, batch_size, ref_root_node, ref_alpha, ref_erate, flag=1)
-else:
-    if(ref_WES):
-        exonrunSim(ref_int_nodes, ref_coverage, ref_read_len, reference_working_dir, reference_working_dir,
-                batch_size, ref_root_node, exonDict, numchrommap, subblock_size, ref_alpha, ref_erate, flag=1)
-    else:
-        runSim(ref_int_nodes, ref_coverage, ref_read_len, reference_working_dir,
-            reference_working_dir, batch_size, ref_root_node, ref_alpha, ref_erate, flag=1)
+
+# WES
+exonrunPairedSim(ref_int_nodes, ref_coverage, ref_read_len, ref_frag_len, reference_working_dir,
+                        reference_working_dir, batch_size, ref_root_node, exonDict, numchrommap, subblock_size, ref_alpha, ref_erate, flag=1)
+
+# Targeted
+exonrunPairedSim(ref_int_nodes, ref_coverage, ref_read_len, ref_frag_len, reference_working_dir,
+                        reference_working_dir, batch_size, ref_root_node, targetDict, numchrommap, subblock_size, ref_alpha, ref_erate, flag=1)
+
+# if(ref_paired):
+#     if(ref_WES):
+#         exonrunPairedSim(ref_int_nodes, ref_coverage, ref_read_len, ref_frag_len, reference_working_dir,
+#                         reference_working_dir, batch_size, ref_root_node, exonDict, numchrommap, subblock_size, ref_alpha, ref_erate, flag=1)
+#     else:
+#         runPairedSim(ref_int_nodes, ref_coverage, ref_read_len, ref_frag_len, reference_working_dir,
+#                     reference_working_dir, batch_size, ref_root_node, ref_alpha, ref_erate, flag=1)
+# else:
+#     if(ref_WES):
+#         exonrunSim(ref_int_nodes, ref_coverage, ref_read_len, reference_working_dir, reference_working_dir,
+#                 batch_size, ref_root_node, exonDict, numchrommap, subblock_size, ref_alpha, ref_erate, flag=1)
+#     else:
+#         runSim(ref_int_nodes, ref_coverage, ref_read_len, reference_working_dir,
+#             reference_working_dir, batch_size, ref_root_node, ref_alpha, ref_erate, flag=1)
 getmemory()
 
 running_clone_list = []
@@ -1400,7 +1430,6 @@ for tum in range(num_tumors):
     print('written reg')
     tree = getTree(num_clones, pop, working_dir, tree_seed)
     list_of_paths = getPaths(tree, num_clones)
-    print(list_of_paths)
     time_matrix, depth = getTimeMatrix(tree, num_clones)
     mutationedge_list, avg_rate_list = generateOrder(
         tree, time_matrix, list_of_rates)
@@ -1462,46 +1491,57 @@ for tum in range(num_tumors):
             f.write('full poisson time: ' + str(depth) + '\n')
             f.write('error rate: ' + str(error_rate) + '\n')
         getmemory()
-        if(paired):
-            if(WES):
-                exonrunPairedSim(use_nodes, coverage, read_len, frag_len, working_dir, real_working_dir,
-                                batch_size, root_node, exonDictR, numchrommap, subblock_size, alpha, error_rate, flag=0)
-                for i in range(num_single_cells):
-                    single_cell_dir = working_dir+f'samplenum_{sample}_singlecell_{i}/'
-                    makedir(single_cell_dir)
-                    clear_dir(single_cell_dir)
-                    exonrunPairedSim(use_nodes, coverage, read_len, frag_len, working_dir, single_cell_dir,
-                                    batch_size, root_node, exonDictR, numchrommap, subblock_size, alpha, error_rate, flag=2)
 
-            else:
-                runPairedSim(use_nodes, coverage, read_len, frag_len, working_dir,
-                            real_working_dir, batch_size, root_node, alpha, error_rate, flag=0)
-                for i in range(num_single_cells):
-                    single_cell_dir = working_dir+f'samplenum_{sample}_singlecell_{i}/'
-                    makedir(single_cell_dir)
-                    clear_dir(single_cell_dir) 
-                    runPairedSim(use_nodes, coverage, read_len, frag_len, working_dir,
-                                single_cell_dir, batch_size, root_node, alpha, error_rate, flag=2)
-        else:
-            if(WES):
-                exonrunSim(use_nodes, coverage, read_len, working_dir, real_working_dir,
-                        batch_size, root_node, exonDictR, numchrommap, subblock_size, alpha, error_rate, flag=0)
-                for i in range(num_single_cells):
-                    single_cell_dir = working_dir+f'samplenum_{sample}_singlecell_{i}/'
-                    makedir(single_cell_dir)
-                    clear_dir(single_cell_dir) 
-                    exonrunSim(use_nodes, coverage, read_len, working_dir, single_cell_dir,
-                            batch_size, root_node, exonDictR, numchrommap, subblock_size, alpha, error_rate, flag=2)
-
-            else:
-                runSim(use_nodes, coverage, read_len, working_dir,
+        # WGS
+        runPairedSim(use_nodes, coverage, read_len, frag_len, working_dir,
                     real_working_dir, batch_size, root_node, alpha, error_rate, flag=0)
-                for i in range(num_single_cells):
-                    single_cell_dir = working_dir+f'samplenum_{sample}_singlecell_{i}/'
-                    makedir(single_cell_dir)
-                    clear_dir(single_cell_dir) 
-                    runSim(use_nodes, coverage, read_len, working_dir,
-                        single_cell_dir, batch_size, root_node, alpha, error_rate, flag=2)
+        # WES
+        exonrunPairedSim(use_nodes, coverage, read_len, frag_len, working_dir, real_working_dir,
+                        batch_size, root_node, exonDict, numchrommap, subblock_size, alpha, error_rate, flag=0)
+        # targeted
+        exonrunPairedSim(use_nodes, coverage, read_len, frag_len, working_dir, real_working_dir,
+                        batch_size, root_node, targetDict, numchrommap, subblock_size, alpha, error_rate, flag=0)
+
+        # if(paired):
+        #     if(WES):
+        #         exonrunPairedSim(use_nodes, coverage, read_len, frag_len, working_dir, real_working_dir,
+        #                         batch_size, root_node, exonDictR, numchrommap, subblock_size, alpha, error_rate, flag=0)
+        #         for i in range(num_single_cells):
+        #             single_cell_dir = working_dir+f'samplenum_{sample}_singlecell_{i}/'
+        #             makedir(single_cell_dir)
+        #             clear_dir(single_cell_dir)
+        #             exonrunPairedSim(use_nodes, coverage, read_len, frag_len, working_dir, single_cell_dir,
+        #                             batch_size, root_node, exonDictR, numchrommap, subblock_size, alpha, error_rate, flag=2)
+
+        #     else:
+        #         runPairedSim(use_nodes, coverage, read_len, frag_len, working_dir,
+        #                     real_working_dir, batch_size, root_node, alpha, error_rate, flag=0)
+        #         for i in range(num_single_cells):
+        #             single_cell_dir = working_dir+f'samplenum_{sample}_singlecell_{i}/'
+        #             makedir(single_cell_dir)
+        #             clear_dir(single_cell_dir) 
+        #             runPairedSim(use_nodes, coverage, read_len, frag_len, working_dir,
+        #                         single_cell_dir, batch_size, root_node, alpha, error_rate, flag=2)
+        # else:
+        #     if(WES):
+        #         exonrunSim(use_nodes, coverage, read_len, working_dir, real_working_dir,
+        #                 batch_size, root_node, exonDictR, numchrommap, subblock_size, alpha, error_rate, flag=0)
+        #         for i in range(num_single_cells):
+        #             single_cell_dir = working_dir+f'samplenum_{sample}_singlecell_{i}/'
+        #             makedir(single_cell_dir)
+        #             clear_dir(single_cell_dir) 
+        #             exonrunSim(use_nodes, coverage, read_len, working_dir, single_cell_dir,
+        #                     batch_size, root_node, exonDictR, numchrommap, subblock_size, alpha, error_rate, flag=2)
+
+        #     else:
+        #         runSim(use_nodes, coverage, read_len, working_dir,
+        #             real_working_dir, batch_size, root_node, alpha, error_rate, flag=0)
+        #         for i in range(num_single_cells):
+        #             single_cell_dir = working_dir+f'samplenum_{sample}_singlecell_{i}/'
+        #             makedir(single_cell_dir)
+        #             clear_dir(single_cell_dir) 
+        #             runSim(use_nodes, coverage, read_len, working_dir,
+        #                 single_cell_dir, batch_size, root_node, alpha, error_rate, flag=2)
 print('finished tumors')
 liquid_biopsy = random.choice(liquid_biopsy_list)
 if(liquid_biopsy):
