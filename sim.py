@@ -30,6 +30,7 @@ GLOBAL_CHROM_NUM = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17
                     22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45]
 
 def getSVSize(chromosome_size = 1e8):
+    chromosome_size = 10
     return_val1 = np.random.negative_binomial(0.1, 0.0001)
     return_val2 = np.random.negative_binomial(1, 0.00001)
     return_val3 = np.random.negative_binomial(200, 0.00002) 
@@ -923,7 +924,7 @@ def runPairedSim(num_clones, coverage, rl, fl, read_loc, floc, batch, root, alph
             clone = pickdclone(distn, num_clones)
             if(flag == 0):
                 ls = rgz(f'{read_loc}{clone}.gz')
-                clone_proportion_dict += 1
+                clone_proportion_dict[clone] += 1
             for chrom in ls:
                 frag_len = 0
                 while (frag_len <= rl):
@@ -1306,7 +1307,7 @@ with open(EXON_FILE, 'r') as f:
             interval = [start_i, end_i]
             total_num_intervals += 1
             exonDict[chrom].append(interval)
-            print(chroms[reversemap[chrom]])
+            # print(chroms[reversemap[chrom]])
             strings_to_idx.append(chroms[reversemap[chrom]][start_i:end_i])
 getmemory()
 # print(len(strings_to_idx))
