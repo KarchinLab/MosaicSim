@@ -907,7 +907,7 @@ def runPairedSim(num_clones, coverage, rl, fl, read_loc, floc, batch, root, alph
         f = open(floc + f'singlecellleft.fasta', 'w')
         f2 = open(floc + f'singlecellright.fasta', 'w')
     cov = 0.0
-    ratio = rl/fl
+    ratio = 2*rl/fl
     #random_str = 0
     ls = []
     if(flag == 2):
@@ -1043,7 +1043,7 @@ def exonrunPairedSim(num_clones, coverage, rl, fl, rloc, floc, batch, root, exon
         f = open(floc + f'singlecellleft.fasta', 'w')
         f2 = open(floc + f'singlecellright.fasta', 'w')
     cov = 0.0
-    ratio = rl/fl
+    ratio = 2*rl/fl
     #random_str = 0
     ls = []
     if(flag == 2):
