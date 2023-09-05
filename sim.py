@@ -30,7 +30,7 @@ GLOBAL_CHROM_NUM = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17
                     22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45]
 
 def getSVSize(chromosome_size = 1e8):
-    chromosome_size = 10
+    # chromosome_size = 10 # for testing
     return_val1 = np.random.negative_binomial(0.1, 0.0001)
     return_val2 = np.random.negative_binomial(1, 0.00001)
     return_val3 = np.random.negative_binomial(200, 0.00002) 
@@ -894,7 +894,7 @@ def runSim(num_clones, coverage, rl, read_loc, floc, batch, root, alpha, erate, 
     del ls
 
 
-def runPairedSim(num_clones, coverage, rl, fl, read_loc, floc, batch, root, alpha, erate, flag=0):
+def runPairedSim(num_clones, coverage, rl, fl, read_loc, floc, batch, root, alpha, erate, purity=1, flag=0):
     if(flag == 0):
         f = open(floc + 'bulkleft.fasta', 'w')
         f2 = open(floc + 'bulkright.fasta', 'w')
@@ -907,6 +907,7 @@ def runPairedSim(num_clones, coverage, rl, fl, read_loc, floc, batch, root, alph
         f = open(floc + f'singlecellleft.fasta', 'w')
         f2 = open(floc + f'singlecellright.fasta', 'w')
     cov = 0.0
+    ref_cov = coverage * (purity - random.randint(0,5)/100)
     ratio = 2*rl/fl
     #random_str = 0
     ls = []
@@ -923,8 +924,12 @@ def runPairedSim(num_clones, coverage, rl, fl, read_loc, floc, batch, root, alph
             distn = getDirichletClone(num_clones, alpha)
             clone = pickdclone(distn, num_clones)
             if(flag == 0):
-                ls = rgz(f'{read_loc}{clone}.gz')
-                clone_proportion_dict[clone] += 1
+                if cov > ref_cov:
+                    ls = rgz(f'{read_loc}{clone}.gz')
+                    clone_proportion_dict[clone] += 1
+                else:
+                    ls = rgz(f'{read_loc}{root}.gz')
+                    clone_proportion_dict[root] += 1
             for chrom in ls:
                 frag_len = 0
                 while (frag_len <= rl):
@@ -1216,6 +1221,9 @@ ref_WES = False
 ref_erate = 0.0
 list_of_rates = [high_rates_list, ultralow_rates_list, high_rates_list, ultralow_rates_list, high_rates_list, ultralow_rates_list,ultralow_rates_list, ultralow_rates_list, ultralow_rates_list, ultralow_rates_list, ultralow_rates_list, ultralow_rates_list]
 
+# add purity
+purity_list = [0.8]
+
 #random seed
 random_seed=123
 tree_seed = 123
@@ -1434,6 +1442,7 @@ for tum in range(num_tumors):
         paired = random.choice(paired_list)
         WES = random.choice(WES_list)
         error_rate = random.choice(error_rate_list)
+        purity = random.choice(purity_list)
         with open(real_working_dir + 'parameter_list.txt', 'w') as f:
             f.write('num leaves: ' + str(num_clones)+'\n')
             f.write('dir_conc: ' + str(alpha)+'\n')
@@ -1461,7 +1470,7 @@ for tum in range(num_tumors):
 
             else:
                 runPairedSim(use_nodes, coverage, read_len, frag_len, working_dir,
-                            real_working_dir, batch_size, root_node, alpha, error_rate, flag=0)
+                            real_working_dir, batch_size, root_node, alpha, error_rate, purity, flag=0)
                 for i in range(num_single_cells):
                     single_cell_dir = working_dir+f'samplenum_{sample}_singlecell_{i}/'
                     makedir(single_cell_dir)
