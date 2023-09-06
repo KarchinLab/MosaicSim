@@ -907,7 +907,7 @@ def runPairedSim(num_clones, coverage, rl, fl, read_loc, floc, batch, root, alph
         f = open(floc + f'singlecellleft.fasta', 'w')
         f2 = open(floc + f'singlecellright.fasta', 'w')
     cov = 0.0
-    ref_cov = coverage * (purity - random.randint(0,5)/100)
+    ref_cov = coverage * (1 - purity - random.randint(0,10)/200)
     ratio = 2*rl/fl
     #random_str = 0
     ls = []
